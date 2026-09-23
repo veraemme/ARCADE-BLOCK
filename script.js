@@ -7,15 +7,17 @@ let formaSelezionata = null;
 
 const colori = ['#ff0000', '#00ff00', '#fce803', '#ff9900', '#00ffff', '#ff00ff'];
 
-const modelliForme = [
+// 1. Separiamo i blocchi normali dalla Bomba per decidere noi quando farla uscire!
+const modelliFormeNormali = [
     [[1,1],[1,1]], // Quadrato
     [[1,1,1,1]], // Linea
     [[1],[1],[1],[1]], // Colonna
     [[1,1,1],[1,0,0]], // L
     [[1,1,1],[0,1,0]], // T
-    [[1]], // Punto singolo
-    [[2]] // BLOCCO SPECIALE (Bomba)
+    [[1]] // Punto singolo
 ];
+
+const modelloBomba = [[2]]; // BLOCCO SPECIALE BOMBA
 
 let draggingElement = null;
 let offsetX = 0;
@@ -56,17 +58,27 @@ function creaGriglia() {
     }
 }
 
+// 2. NUOVA LOGICA: Generazione intelligente delle forme e delle bombe
 function generaForme() {
     const contenitore = document.getElementById('shapes-container');
     contenitore.innerHTML = '';
     
     for (let i = 0; i < 3; i++) {
-        let indiceCasuale = Math.floor(Math.random() * modelliForme.length);
-        let modello = modelliForme[indiceCasuale];
-        let colore = colori[Math.floor(Math.random() * colori.length)];
+        let modello, colore;
         
-        // Bomba Nera
-        if (modello[0][0] === 2) colore = '#000000'; 
+        // La probabilità della bomba è 0% all'inizio. Diventa 10% (0.10) superati i 300 punti!
+        let probabilitaBomba = (punteggio >= 300) ? 0.10 : 0; 
+        
+        if (Math.random() < probabilitaBomba) {
+            // È uscita una bomba!
+            modello = modelloBomba;
+            colore = '#000000'; // Sfondo nero
+        } else {
+            // È uscito un blocco normale
+            let indiceCasuale = Math.floor(Math.random() * modelliFormeNormali.length);
+            modello = modelliFormeNormali[indiceCasuale];
+            colore = colori[Math.floor(Math.random() * colori.length)];
+        }
         
         creaElementoForma(modello, colore, contenitore);
     }
@@ -77,6 +89,7 @@ function creaElementoForma(modello, colore, contenitore) {
     divForma.classList.add('shape');
     divForma.style.gridTemplateColumns = `repeat(${modello[0].length}, 20px)`;
     
+    divForma.style.touchAction = 'none'; 
     divForma.modello = modello;
     divForma.colore = colore;
     
@@ -90,7 +103,6 @@ function creaElementoForma(modello, colore, contenitore) {
                 quadratino.style.background = colore;
                 quadratino.classList.add('filled');
                 
-                // Bomba (B Rossa)
                 if (blocco === 2) {
                     quadratino.innerText = 'B';
                     quadratino.style.color = '#ff0000';
@@ -104,7 +116,6 @@ function creaElementoForma(modello, colore, contenitore) {
         });
     });
 
-    // Doppio sistema: MOUSE (PC) e TOUCH (Smartphone), impostato in modo forzato (passive: false)
     divForma.addEventListener('mousedown', startDrag);
     divForma.addEventListener('touchstart', startDrag, { passive: false });
     
@@ -113,9 +124,7 @@ function creaElementoForma(modello, colore, contenitore) {
 
 // --- LOGICA DI TRASCINAMENTO ---
 function startDrag(e) {
-    if (e.type === 'touchstart') {
-        e.preventDefault(); // Questo dice allo smartphone: FERMA LO SCORRIMENTO!
-    }
+    if (e.type === 'touchstart') e.preventDefault(); 
     
     draggingElement = this;
     originalParent = draggingElement.parentElement;
@@ -134,7 +143,7 @@ function startDrag(e) {
 
     draggingElement.style.position = 'fixed';
     draggingElement.style.zIndex = '1000';
-    draggingElement.style.pointerEvents = 'none'; // Importante per "vedere" la griglia sotto
+    draggingElement.style.pointerEvents = 'none'; 
     draggingElement.style.left = (clientX - offsetX) + 'px';
     draggingElement.style.top = (clientY - offsetY) + 'px';
     draggingElement.style.transform = 'scale(1.2)';
@@ -152,10 +161,7 @@ function startDrag(e) {
 
 function drag(e) {
     if (!draggingElement) return;
-    
-    if (e.type === 'touchmove') {
-        e.preventDefault(); // Questo continua a impedire lo scorrimento mentre muovi il dito!
-    }
+    if (e.type === 'touchmove') e.preventDefault(); 
 
     let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
     let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
@@ -181,7 +187,6 @@ function drag(e) {
 function endDrag(e) {
     if (!draggingElement) return;
 
-    // Rimuoviamo gli eventi di ascolto
     document.removeEventListener('mousemove', drag);
     document.removeEventListener('mouseup', endDrag);
     document.removeEventListener('touchmove', drag);
