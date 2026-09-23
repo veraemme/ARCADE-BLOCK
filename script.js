@@ -1,4 +1,4 @@
-// --- VARIABILI DI GIOCO ---
+ // --- VARIABILI DI GIOCO ---
 const DIMENSIONE = 8;
 let griglia = [];
 let punteggio = 0;
@@ -7,7 +7,7 @@ let formaSelezionata = null;
 
 const colori = ['#ff0000', '#00ff00', '#fce803', '#ff9900', '#00ffff', '#ff00ff'];
 
-// 1. Separiamo i blocchi normali dalla Bomba per decidere noi quando farla uscire!
+// Forme Normali separate dalla Bomba
 const modelliFormeNormali = [
     [[1,1],[1,1]], // Quadrato
     [[1,1,1,1]], // Linea
@@ -58,7 +58,6 @@ function creaGriglia() {
     }
 }
 
-// 2. NUOVA LOGICA: Generazione intelligente delle forme e delle bombe
 function generaForme() {
     const contenitore = document.getElementById('shapes-container');
     contenitore.innerHTML = '';
@@ -66,15 +65,13 @@ function generaForme() {
     for (let i = 0; i < 3; i++) {
         let modello, colore;
         
-        // La probabilità della bomba è 0% all'inizio. Diventa 10% (0.10) superati i 300 punti!
+        // Bomba solo dopo i 300 punti (10% di probabilità)
         let probabilitaBomba = (punteggio >= 300) ? 0.10 : 0; 
         
         if (Math.random() < probabilitaBomba) {
-            // È uscita una bomba!
             modello = modelloBomba;
-            colore = '#000000'; // Sfondo nero
+            colore = '#000000'; // Bomba nera
         } else {
-            // È uscito un blocco normale
             let indiceCasuale = Math.floor(Math.random() * modelliFormeNormali.length);
             modello = modelliFormeNormali[indiceCasuale];
             colore = colori[Math.floor(Math.random() * colori.length)];
@@ -105,7 +102,7 @@ function creaElementoForma(modello, colore, contenitore) {
                 
                 if (blocco === 2) {
                     quadratino.innerText = 'B';
-                    quadratino.style.color = '#ff0000';
+                    quadratino.style.color = '#ff0000'; // B Rossa
                     quadratino.style.display = 'flex';
                     quadratino.style.alignItems = 'center';
                     quadratino.style.justifyContent = 'center';
@@ -144,8 +141,12 @@ function startDrag(e) {
     draggingElement.style.position = 'fixed';
     draggingElement.style.zIndex = '1000';
     draggingElement.style.pointerEvents = 'none'; 
-    draggingElement.style.left = (clientX - offsetX) + 'px';
-    draggingElement.style.top = (clientY - offsetY) + 'px';
+    
+    let blockLeft = clientX - offsetX;
+    let blockTop = clientY - offsetY;
+    
+    draggingElement.style.left = blockLeft + 'px';
+    draggingElement.style.top = blockTop + 'px';
     draggingElement.style.transform = 'scale(1.2)';
     
     document.body.appendChild(draggingElement);
@@ -166,10 +167,14 @@ function drag(e) {
     let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
     let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
 
-    draggingElement.style.left = (clientX - offsetX) + 'px';
-    draggingElement.style.top = (clientY - offsetY) + 'px';
+    let blockLeft = clientX - offsetX;
+    let blockTop = clientY - offsetY;
 
-    const elementoSotto = document.elementFromPoint(clientX, clientY);
+    draggingElement.style.left = blockLeft + 'px';
+    draggingElement.style.top = blockTop + 'px';
+
+    // LA MAGIA È QUI: Calcoliamo l'incastro basandoci sulla posizione visiva del blocco e non del dito!
+    const elementoSotto = document.elementFromPoint(blockLeft + 10, blockTop + 10);
 
     if (elementoSotto && elementoSotto.classList.contains('cell')) {
         const r = parseInt(elementoSotto.dataset.r);
