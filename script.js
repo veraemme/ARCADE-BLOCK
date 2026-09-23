@@ -7,7 +7,6 @@ let formaSelezionata = null;
 
 const colori = ['#ff0000', '#00ff00', '#fce803', '#ff9900', '#00ffff', '#ff00ff'];
 
-// 1: blocco normale, 2: Bomba speciale
 const modelliForme = [
     [[1,1],[1,1]], // Quadrato
     [[1,1,1,1]], // Linea
@@ -17,6 +16,12 @@ const modelliForme = [
     [[1]], // Punto singolo
     [[2]] // BLOCCO SPECIALE (Bomba)
 ];
+
+// --- VARIABILI PER IL TRASCINAMENTO ---
+let draggingElement = null;
+let offsetX = 0;
+let offsetY = 0;
+let originalParent = null;
 
 function avviaSchermata() {
     document.getElementById('high-score').innerText = record;
@@ -47,14 +52,6 @@ function creaGriglia() {
             cella.classList.add('cell');
             cella.dataset.r = r;
             cella.dataset.c = c;
-            
-            // Clic per piazzare
-            cella.addEventListener('click', () => piazzaForma(r, c));
-            
-            // Mouse sopra per l'ombra (anteprima)
-            cella.addEventListener('mouseover', () => mostraAnteprima(r, c));
-            cella.addEventListener('mouseout', rimuoviAnteprima);
-            
             gridDiv.appendChild(cella);
         }
     }
@@ -63,13 +60,12 @@ function creaGriglia() {
 function generaForme() {
     const contenitore = document.getElementById('shapes-container');
     contenitore.innerHTML = '';
-    formaSelezionata = null;
-
+    
     for (let i = 0; i < 3; i++) {
         let indiceCasuale = Math.floor(Math.random() * modelliForme.length);
         let modello = modelliForme[indiceCasuale];
         let colore = colori[Math.floor(Math.random() * colori.length)];
-        if (modello[0][0] === 2) colore = '#ffffff'; // La bomba è bianca
+        if (modello[0][0] === 2) colore = '#ffffff'; 
         creaElementoForma(modello, colore, contenitore);
     }
 }
@@ -78,6 +74,10 @@ function creaElementoForma(modello, colore, contenitore) {
     const divForma = document.createElement('div');
     divForma.classList.add('shape');
     divForma.style.gridTemplateColumns = `repeat(${modello[0].length}, 20px)`;
+    
+    // Salviamo i dati direttamente nell'elemento HTML
+    divForma.modello = modello;
+    divForma.colore = colore;
     
     modello.forEach(riga => {
         riga.forEach(blocco => {
@@ -93,24 +93,125 @@ function creaElementoForma(modello, colore, contenitore) {
         });
     });
 
-    // Seleziona la forma
-    divForma.addEventListener('click', () => {
-        document.querySelectorAll('.shape').forEach(s => s.classList.remove('selected'));
-        divForma.classList.add('selected');
-        formaSelezionata = { modello, colore, elemento: divForma };
-    });
+    // SISTEMA DRAG & DROP PER MOBILE E PC
+    divForma.addEventListener('touchstart', startDrag, {passive: false});
+    divForma.addEventListener('touchmove', drag, {passive: false});
+    divForma.addEventListener('touchend', endDrag);
+    divForma.addEventListener('mousedown', startDrag);
 
     contenitore.appendChild(divForma);
 }
 
-// --- LOGICA DELL'OMBRA (ANTEPRIMA) ---
+// --- LOGICA DI TRASCINAMENTO (DRAG & DROP) ---
+function startDrag(e) {
+    if (e.type === 'touchstart') e.preventDefault(); // Evita lo scroll dello schermo
+    
+    draggingElement = this;
+    originalParent = draggingElement.parentElement;
+    
+    formaSelezionata = {
+        modello: draggingElement.modello,
+        colore: draggingElement.colore,
+        elemento: draggingElement
+    };
+
+    const rect = draggingElement.getBoundingClientRect();
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+    // Su mobile spostiamo il blocco 50px più in alto del dito per non coprirlo!
+    let offsetDitoY = e.type.includes('touch') ? 50 : 0; 
+    let offsetDitoX = e.type.includes('touch') ? 20 : 0;
+    
+    offsetX = clientX - rect.left + offsetDitoX;
+    offsetY = clientY - rect.top + offsetDitoY;
+
+    draggingElement.style.position = 'fixed';
+    draggingElement.style.zIndex = '1000';
+    draggingElement.style.left = (clientX - offsetX) + 'px';
+    draggingElement.style.top = (clientY - offsetY) + 'px';
+    draggingElement.style.transform = 'scale(1.2)';
+    
+    document.body.appendChild(draggingElement);
+    
+    if (e.type === 'mousedown') {
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+    }
+}
+
+function drag(e) {
+    if (!draggingElement) return;
+    if (e.type === 'touchmove') e.preventDefault();
+
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+    draggingElement.style.left = (clientX - offsetX) + 'px';
+    draggingElement.style.top = (clientY - offsetY) + 'px';
+
+    // Calcola quale cella della griglia c'è sotto l'angolo in alto a sinistra del blocco
+    const rect = draggingElement.getBoundingClientRect();
+    draggingElement.style.visibility = 'hidden'; // Nascondi un attimo per "vedere" sotto
+    const elementoSotto = document.elementFromPoint(rect.left + 10, rect.top + 10);
+    draggingElement.style.visibility = 'visible'; // Rimostra subito
+
+    if (elementoSotto && elementoSotto.classList.contains('cell')) {
+        const r = parseInt(elementoSotto.dataset.r);
+        const c = parseInt(elementoSotto.dataset.c);
+        mostraAnteprima(r, c);
+        draggingElement.dataset.targetR = r;
+        draggingElement.dataset.targetC = c;
+    } else {
+        rimuoviAnteprima();
+        draggingElement.dataset.targetR = "";
+        draggingElement.dataset.targetC = "";
+    }
+}
+
+function endDrag(e) {
+    if (!draggingElement) return;
+
+    if (e.type === 'mouseup') {
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('mouseup', endDrag);
+    }
+
+    const r = draggingElement.dataset.targetR;
+    const c = draggingElement.dataset.targetC;
+    let piazzato = false;
+
+    if (r !== "" && c !== "") {
+        piazzato = tentaPiazzamento(parseInt(r), parseInt(c));
+    }
+
+    if (!piazzato) {
+        // Ritorna al contenitore in basso se non c'è spazio o se lasciato fuori dalla griglia
+        draggingElement.style.position = 'static';
+        draggingElement.style.zIndex = 'auto';
+        draggingElement.style.transform = 'scale(1)';
+        originalParent.appendChild(draggingElement);
+        
+        // Vibrazione errore
+        const gridDiv = document.getElementById('grid');
+        gridDiv.classList.add('shake');
+        setTimeout(() => gridDiv.classList.remove('shake'), 200);
+    }
+
+    rimuoviAnteprima();
+    draggingElement.dataset.targetR = "";
+    draggingElement.dataset.targetC = "";
+    draggingElement = null;
+    formaSelezionata = null;
+}
+
+// --- ANTEPRIMA E LOGICA DI INCASTRO ---
 function mostraAnteprima(rigaPartenza, colPartenza) {
     if (!formaSelezionata) return;
     rimuoviAnteprima();
     const { modello } = formaSelezionata;
     let puoPiazzare = true;
 
-    // Controllo se ci sta
     for (let r = 0; r < modello.length; r++) {
         for (let c = 0; c < modello[r].length; c++) {
             if (modello[r][c] > 0) {
@@ -123,7 +224,6 @@ function mostraAnteprima(rigaPartenza, colPartenza) {
         }
     }
 
-    // Disegna l'ombra bianca (o rossa se è bloccata)
     for (let r = 0; r < modello.length; r++) {
         for (let c = 0; c < modello[r].length; c++) {
             if (modello[r][c] > 0) {
@@ -146,9 +246,7 @@ function rimuoviAnteprima() {
     });
 }
 
-// --- PIAZZARE LA FORMA ---
-function piazzaForma(rigaPartenza, colPartenza) {
-    if (!formaSelezionata) return;
+function tentaPiazzamento(rigaPartenza, colPartenza) {
     const { modello, colore, elemento } = formaSelezionata;
     let puoPiazzare = true;
 
@@ -179,19 +277,13 @@ function piazzaForma(rigaPartenza, colPartenza) {
 
         aggiornaPunteggio(10);
         disegnaGriglia();
-        rimuoviAnteprima(); 
-        elemento.remove();
-        formaSelezionata = null;
-
+        elemento.remove(); // Distrugge il blocco trascinato
         controllaLinee();
 
         if (document.getElementById('shapes-container').children.length === 0) generaForme();
-    } else {
-        // SE CLICCHI MALE, LA GRIGLIA VIBRA!
-        const gridDiv = document.getElementById('grid');
-        gridDiv.classList.add('shake');
-        setTimeout(() => gridDiv.classList.remove('shake'), 200);
+        return true; // Piazzato con successo!
     }
+    return false; // Fallito
 }
 
 function disegnaGriglia() {
