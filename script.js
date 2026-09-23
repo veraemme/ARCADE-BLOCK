@@ -65,7 +65,7 @@ function generaForme() {
         let modello = modelliForme[indiceCasuale];
         let colore = colori[Math.floor(Math.random() * colori.length)];
         
-        // SE È LA BOMBA: Sfondo Nero!
+        // Bomba Nera
         if (modello[0][0] === 2) colore = '#000000'; 
         
         creaElementoForma(modello, colore, contenitore);
@@ -76,9 +76,6 @@ function creaElementoForma(modello, colore, contenitore) {
     const divForma = document.createElement('div');
     divForma.classList.add('shape');
     divForma.style.gridTemplateColumns = `repeat(${modello[0].length}, 20px)`;
-    
-    // Evita che lo schermo del telefono scorra quando tocchi il blocco
-    divForma.style.touchAction = 'none'; 
     
     divForma.modello = modello;
     divForma.colore = colore;
@@ -93,10 +90,10 @@ function creaElementoForma(modello, colore, contenitore) {
                 quadratino.style.background = colore;
                 quadratino.classList.add('filled');
                 
-                // STILE DELLA BOMBA (Nera con B Rossa)
+                // Bomba (B Rossa)
                 if (blocco === 2) {
                     quadratino.innerText = 'B';
-                    quadratino.style.color = '#ff0000'; // B Rossa
+                    quadratino.style.color = '#ff0000';
                     quadratino.style.display = 'flex';
                     quadratino.style.alignItems = 'center';
                     quadratino.style.justifyContent = 'center';
@@ -107,15 +104,18 @@ function creaElementoForma(modello, colore, contenitore) {
         });
     });
 
-    // POINTER EVENTS: La soluzione definitiva per PC e Mobile uniti!
-    divForma.addEventListener('pointerdown', startDrag);
+    // Doppio sistema: MOUSE (PC) e TOUCH (Smartphone), impostato in modo forzato (passive: false)
+    divForma.addEventListener('mousedown', startDrag);
+    divForma.addEventListener('touchstart', startDrag, { passive: false });
     
     contenitore.appendChild(divForma);
 }
 
-// --- LOGICA DI TRASCINAMENTO UNIVERSALE (POINTER API) ---
+// --- LOGICA DI TRASCINAMENTO ---
 function startDrag(e) {
-    e.preventDefault(); 
+    if (e.type === 'touchstart') {
+        e.preventDefault(); // Questo dice allo smartphone: FERMA LO SCORRIMENTO!
+    }
     
     draggingElement = this;
     originalParent = draggingElement.parentElement;
@@ -126,34 +126,39 @@ function startDrag(e) {
         elemento: draggingElement
     };
 
-    const clientX = e.clientX;
-    const clientY = e.clientY;
+    let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
 
-    // Se sta usando un dito ('touch'), alza il blocco per non coprirlo col dito
     offsetX = 10; 
-    offsetY = e.pointerType === 'touch' ? 60 : 10; 
+    offsetY = e.type.includes('touch') ? 60 : 10; 
 
     draggingElement.style.position = 'fixed';
     draggingElement.style.zIndex = '1000';
-    draggingElement.style.pointerEvents = 'none'; // Permette di cliccare "attraverso" il blocco
+    draggingElement.style.pointerEvents = 'none'; // Importante per "vedere" la griglia sotto
     draggingElement.style.left = (clientX - offsetX) + 'px';
     draggingElement.style.top = (clientY - offsetY) + 'px';
     draggingElement.style.transform = 'scale(1.2)';
     
     document.body.appendChild(draggingElement);
     
-    // Attiva il tracciamento del movimento
-    document.addEventListener('pointermove', drag);
-    document.addEventListener('pointerup', endDrag);
-    document.addEventListener('pointercancel', endDrag);
+    if (e.type.includes('touch')) {
+        document.addEventListener('touchmove', drag, { passive: false });
+        document.addEventListener('touchend', endDrag);
+    } else {
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+    }
 }
 
 function drag(e) {
     if (!draggingElement) return;
-    e.preventDefault();
+    
+    if (e.type === 'touchmove') {
+        e.preventDefault(); // Questo continua a impedire lo scorrimento mentre muovi il dito!
+    }
 
-    const clientX = e.clientX;
-    const clientY = e.clientY;
+    let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
 
     draggingElement.style.left = (clientX - offsetX) + 'px';
     draggingElement.style.top = (clientY - offsetY) + 'px';
@@ -176,10 +181,11 @@ function drag(e) {
 function endDrag(e) {
     if (!draggingElement) return;
 
-    // Rimuove il tracciamento quando lasci lo schermo o il mouse
-    document.removeEventListener('pointermove', drag);
-    document.removeEventListener('pointerup', endDrag);
-    document.removeEventListener('pointercancel', endDrag);
+    // Rimuoviamo gli eventi di ascolto
+    document.removeEventListener('mousemove', drag);
+    document.removeEventListener('mouseup', endDrag);
+    document.removeEventListener('touchmove', drag);
+    document.removeEventListener('touchend', endDrag);
 
     const r = draggingElement.dataset.targetR;
     const c = draggingElement.dataset.targetC;
@@ -190,11 +196,10 @@ function endDrag(e) {
     }
 
     if (!piazzato) {
-        // Torna alla base se sbagli mira
         draggingElement.style.position = 'static';
         draggingElement.style.zIndex = 'auto';
         draggingElement.style.transform = 'scale(1)';
-        draggingElement.style.pointerEvents = 'auto'; // Riattiva la presa
+        draggingElement.style.pointerEvents = 'auto'; 
         originalParent.appendChild(draggingElement);
         
         const gridDiv = document.getElementById('grid');
