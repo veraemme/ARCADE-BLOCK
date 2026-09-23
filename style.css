@@ -116,6 +116,7 @@ body {
 .shapes-container {
     display: flex;
     justify-content: space-around;
+    align-items: center; /* <--- MODIFICA INSERITA QUI */
     width: 100%;
     margin-top: 20px;
     height: 100px;
@@ -125,6 +126,7 @@ body {
     gap: 2px;
     cursor: pointer;
     transition: transform 0.2s;
+    align-content: center; /* <--- E MODIFICA INSERITA QUI */
 }
 .shape:hover { transform: scale(1.1); }
 .shape.selected { transform: scale(1.2); outline: 2px dashed yellow; }
@@ -149,3 +151,4 @@ body {
     75% { transform: translateX(-5px); }
     100% { transform: translateX(0); }
 }
+
