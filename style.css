@@ -112,24 +112,35 @@ body {
     100% { background-color: transparent; transform: scale(1); }
 }
 
-/* CONTENITORE FORME */
+/* --- CONTENITORE FORME (Correzione blocco e tratteggio) --- */
 .shapes-container {
     display: flex;
     justify-content: space-around;
-    align-items: center; /* <--- MODIFICA INSERITA QUI */
+    align-items: center; 
     width: 100%;
     margin-top: 20px;
     height: 100px;
 }
+
 .shape {
     display: grid;
+    grid-auto-rows: 20px; /* Impedisce alle righe di separarsi */
     gap: 2px;
     cursor: pointer;
     transition: transform 0.2s;
-    align-content: center; /* <--- E MODIFICA INSERITA QUI */
+    width: fit-content;  /* Stringe la scatola trasparente attorno al blocco */
+    height: fit-content; /* Stringe l'altezza attorno al blocco */
+    padding: 4px;        /* Dà respiro per la riga tratteggiata */
+    margin: 0 auto;
 }
+
 .shape:hover { transform: scale(1.1); }
-.shape.selected { transform: scale(1.2); outline: 2px dashed yellow; }
+
+.shape.selected { 
+    transform: scale(1.2); 
+    outline: 2px dashed yellow; /* Riga tratteggiata */
+    border-radius: 5px; 
+}
 
 .mt-10 { margin-top: 20px; }
 
