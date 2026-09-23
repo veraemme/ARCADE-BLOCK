@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arcade Block</title>
+    <!-- Font stile Arcade -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- SCHERMATA INIZIALE -->
+    <div id="start-screen" class="screen">
+        <h1 class="titolo-mario">ARCADE<br>BLOCK</h1>
+        <p class="blink">Welcome to Arcade Block!</p>
+        <button onclick="startGame()" class="btn-arcade">PLAY</button>
+        
+        <div class="multiplayer-box">
+            <p>Sfida Amici:</p>
+            <input type="text" id="groupCode" placeholder="Codice Gruppo">
+            <button onclick="joinGroup()" class="btn-arcade small">Entra</button>
+        </div>
+    </div>
+
+    <!-- SCHERMATA DI GIOCO -->
+    <div id="game-screen" class="screen" style="display: none;">
+        <div class="header">
+            <div class="score-box">SCORE: <span id="score">0</span></div>
+            <div class="score-box">BEST: <span id="high-score">0</span></div>
+        </div>
+        
+        <div id="grid" class="grid"></div>
+        
+        <div id="shapes-container" class="shapes-container"></div>
+        
+        <button onclick="showStartScreen()" class="btn-arcade small mt-10">Esci</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
