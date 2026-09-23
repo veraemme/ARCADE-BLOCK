@@ -12,7 +12,6 @@ body {
     align-items: center;
     color: white;
     text-shadow: 2px 2px 0px #000;
-    /* BLOCCO DELLO SCORRIMENTO DELLO SCHERMO: */
     overflow: hidden; 
     overscroll-behavior: none; 
 }
@@ -117,28 +116,25 @@ body {
     display: flex;
     justify-content: space-around;
     align-items: center; 
+    flex-wrap: wrap; /* MODIFICA CHIAVE: permette ai blocchi reali 1:1 di stare larghi */
     width: 100%;
     margin-top: 20px;
-    height: 100px;
+    min-height: 100px;
 }
 
 .shape {
     display: grid;
-    grid-auto-rows: 20px;
     gap: 2px;
     cursor: pointer;
-    transition: transform 0.2s;
     width: fit-content;  
     height: fit-content; 
     padding: 4px;        
-    margin: 0 auto;
-    /* BLOCCO DELLO SCORRIMENTO SUI BLOCCHI: */
+    margin: 5px;
     touch-action: none; 
     user-select: none;
 }
 
-.shape:hover { transform: scale(1.1); }
-.shape.selected { transform: scale(1.2); outline: 2px dashed yellow; border-radius: 5px; }
+.shape.selected { outline: 2px dashed yellow; border-radius: 5px; }
 
 .mt-10 { margin-top: 20px; }
 
