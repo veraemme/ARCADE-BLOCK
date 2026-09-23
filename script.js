@@ -1,4 +1,4 @@
- // --- VARIABILI DI GIOCO ---
+// --- VARIABILI DI GIOCO ---
 const DIMENSIONE = 8;
 let griglia = [];
 let punteggio = 0;
@@ -7,7 +7,6 @@ let formaSelezionata = null;
 
 const colori = ['#ff0000', '#00ff00', '#fce803', '#ff9900', '#00ffff', '#ff00ff'];
 
-// Forme Normali separate dalla Bomba
 const modelliFormeNormali = [
     [[1,1],[1,1]], // Quadrato
     [[1,1,1,1]], // Linea
@@ -17,7 +16,7 @@ const modelliFormeNormali = [
     [[1]] // Punto singolo
 ];
 
-const modelloBomba = [[2]]; // BLOCCO SPECIALE BOMBA
+const modelloBomba = [[2]]; 
 
 let draggingElement = null;
 let offsetX = 0;
@@ -65,12 +64,11 @@ function generaForme() {
     for (let i = 0; i < 3; i++) {
         let modello, colore;
         
-        // Bomba solo dopo i 300 punti (10% di probabilità)
         let probabilitaBomba = (punteggio >= 300) ? 0.10 : 0; 
         
         if (Math.random() < probabilitaBomba) {
             modello = modelloBomba;
-            colore = '#000000'; // Bomba nera
+            colore = '#000000'; 
         } else {
             let indiceCasuale = Math.floor(Math.random() * modelliFormeNormali.length);
             modello = modelliFormeNormali[indiceCasuale];
@@ -102,7 +100,7 @@ function creaElementoForma(modello, colore, contenitore) {
                 
                 if (blocco === 2) {
                     quadratino.innerText = 'B';
-                    quadratino.style.color = '#ff0000'; // B Rossa
+                    quadratino.style.color = '#ff0000';
                     quadratino.style.display = 'flex';
                     quadratino.style.alignItems = 'center';
                     quadratino.style.justifyContent = 'center';
@@ -119,7 +117,7 @@ function creaElementoForma(modello, colore, contenitore) {
     contenitore.appendChild(divForma);
 }
 
-// --- LOGICA DI TRASCINAMENTO ---
+// --- TRASCINAMENTO REALE 1:1 ---
 function startDrag(e) {
     if (e.type === 'touchstart') e.preventDefault(); 
     
@@ -135,19 +133,22 @@ function startDrag(e) {
     let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
     let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
 
-    offsetX = 10; 
-    offsetY = e.type.includes('touch') ? 60 : 10; 
+    // CALCOLO ESATTO 1:1 DEL PUNTO DI PRESA
+    const rect = draggingElement.getBoundingClientRect();
+    offsetX = clientX - rect.left;
+    offsetY = clientY - rect.top;
 
     draggingElement.style.position = 'fixed';
     draggingElement.style.zIndex = '1000';
     draggingElement.style.pointerEvents = 'none'; 
+    draggingElement.style.margin = '0'; // Evita scatti improvvisi
+    draggingElement.style.transform = 'scale(1)'; // Mantiene la grandezza reale per allinearsi perfettamente
     
     let blockLeft = clientX - offsetX;
     let blockTop = clientY - offsetY;
     
     draggingElement.style.left = blockLeft + 'px';
     draggingElement.style.top = blockTop + 'px';
-    draggingElement.style.transform = 'scale(1.2)';
     
     document.body.appendChild(draggingElement);
     
@@ -167,13 +168,14 @@ function drag(e) {
     let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
     let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
 
+    // Ricalcola la posizione esatta 1:1
     let blockLeft = clientX - offsetX;
     let blockTop = clientY - offsetY;
 
     draggingElement.style.left = blockLeft + 'px';
     draggingElement.style.top = blockTop + 'px';
 
-    // LA MAGIA È QUI: Calcoliamo l'incastro basandoci sulla posizione visiva del blocco e non del dito!
+    // Prende il punto ESATTO sotto il blocco (l'angolo in alto a sinistra)
     const elementoSotto = document.elementFromPoint(blockLeft + 10, blockTop + 10);
 
     if (elementoSotto && elementoSotto.classList.contains('cell')) {
@@ -208,7 +210,6 @@ function endDrag(e) {
     if (!piazzato) {
         draggingElement.style.position = 'static';
         draggingElement.style.zIndex = 'auto';
-        draggingElement.style.transform = 'scale(1)';
         draggingElement.style.pointerEvents = 'auto'; 
         originalParent.appendChild(draggingElement);
         
@@ -322,7 +323,6 @@ function disegnaGriglia() {
     });
 }
 
-// --- CONTROLLO DELLE LINEE ---
 function controllaLinee() {
     let righeDaCancellare = [];
     let colDaCancellare = [];
